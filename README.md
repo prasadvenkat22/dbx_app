@@ -68,3 +68,11 @@ with this project. It's also possible to interact with it directly using the CLI
    ```
    $ uv run pytest
    ```
+  To redeploy later, just run these two commands:
+  $env:PATH = "C:\Users\prasa\databricks-cli-new;C:\Users\prasa\AppData\Roaming\Python\Python313\Scripts;" +
+  $env:PATH
+  cd C:\databricks\dbx_app
+  databricks bundle deploy -t dev
+  databricks bundle run -t dev wanderbricks_app
+
+  Everything is saved in GitHub so you can always restore from there too.
