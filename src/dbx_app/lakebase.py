@@ -3,16 +3,22 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from databricks.sdk import WorkspaceClient
 
-LAKEBASE_HOST = os.environ.get(
-    "LAKEBASE_HOST",
-    "ep-long-wildflower-d8ew0atm.database.us-east-2.cloud.databricks.com",
-)
+LAKEBASE_HOST = os.environ.get("LAKEBASE_HOST", "")
 LAKEBASE_PORT = int(os.environ.get("LAKEBASE_PORT", "5432"))
 LAKEBASE_DB = os.environ.get("LAKEBASE_DB", "postgres")
-LAKEBASE_ENDPOINT = "projects/dbx-lbase/branches/production/endpoints/primary"
+LAKEBASE_ENDPOINT = os.environ.get("LAKEBASE_ENDPOINT", "")
 
 
 def _connect() -> psycopg2.extensions.connection:
+    if not LAKEBASE_HOST:
+        raise RuntimeError(
+            "LAKEBASE_HOST is not configured. Set the lakebase_host variable in databricks.yml."
+        )
+    if not LAKEBASE_ENDPOINT:
+        raise RuntimeError(
+            "LAKEBASE_ENDPOINT is not configured. Set the lakebase_endpoint variable in databricks.yml."
+        )
+
     w = WorkspaceClient()
 
     # Get the current identity to use as the Postgres username

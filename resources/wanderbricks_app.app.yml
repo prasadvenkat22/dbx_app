@@ -8,7 +8,7 @@ resources:
       resources:
         - name: warehouse
           sql_warehouse:
-            id: "9a9e6998ebd419bf"
+            id: ${var.warehouse_id}
             permission: CAN_USE
 
       config:
@@ -17,4 +17,8 @@ resources:
           - start.sh
         env:
           - name: DATABRICKS_WAREHOUSE_ID
-            value: "9a9e6998ebd419bf"
+            value: ${var.warehouse_id}
+          - name: LAKEBASE_HOST
+            value: ${var.lakebase_host}
+          - name: LAKEBASE_ENDPOINT
+            value: ${var.lakebase_endpoint}
