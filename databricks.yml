@@ -53,6 +53,7 @@ targets:
       # Set this to your workspace URL, e.g. https://my-workspace.azuredatabricks.net
       # Or remove this line and just run: databricks configure
       host: https://dbc-96663a11-56a8.cloud.databricks.com
+      profile: venkat
     variables:
       catalog: workspace
       schema: ${workspace.current_user.short_name}
