@@ -1,8 +1,11 @@
 import os
 import traceback
+from datetime import date
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 from . import wanderbricks as wb
+from . import lakebase as lb
 
 app = FastAPI(
     title="Wanderbricks API",
@@ -171,3 +174,58 @@ def destinations(
 ):
     """List travel destinations."""
     return wb.get_destinations(limit=limit, offset=offset)
+
+
+# ── Bookings (Lakebase Postgres) ──────────────────────────────────────────────
+
+class BookingRequest(BaseModel):
+    property_id: int
+    user_id: int
+    check_in: date
+    check_out: date
+    guests: int = 1
+    total_price: float | None = None
+
+
+@app.post("/api/bookings", tags=["bookings"], status_code=201)
+def create_booking(body: BookingRequest):
+    """Create a new booking — stored in Lakebase Postgres."""
+    if body.check_out <= body.check_in:
+        raise HTTPException(status_code=400, detail="check_out must be after check_in")
+    return lb.create_booking(
+        property_id=body.property_id,
+        user_id=body.user_id,
+        check_in=str(body.check_in),
+        check_out=str(body.check_out),
+        guests=body.guests,
+        total_price=body.total_price,
+    )
+
+
+@app.get("/api/bookings", tags=["bookings"])
+def list_bookings(
+    property_id: int | None = Query(None),
+    user_id: int | None = Query(None),
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+):
+    """List bookings, optionally filtered by property or user."""
+    return lb.list_bookings(property_id=property_id, user_id=user_id, limit=limit, offset=offset)
+
+
+@app.get("/api/bookings/{booking_id}", tags=["bookings"])
+def get_booking(booking_id: int):
+    """Get a single booking by ID."""
+    row = lb.get_booking(booking_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail=f"Booking {booking_id} not found")
+    return row
+
+
+@app.delete("/api/bookings/{booking_id}", tags=["bookings"])
+def cancel_booking(booking_id: int):
+    """Cancel a booking."""
+    row = lb.cancel_booking(booking_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail=f"Booking {booking_id} not found")
+    return row
