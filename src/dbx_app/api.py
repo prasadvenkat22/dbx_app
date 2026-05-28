@@ -2,7 +2,7 @@ import os
 import traceback
 from datetime import date
 from fastapi import FastAPI, HTTPException, Query, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel
 from . import wanderbricks as wb
 from . import lakebase as lb
@@ -24,7 +24,12 @@ async def all_exception_handler(request: Request, exc: Exception):
     )
 
 
-# ── Health & Debug ────────────────────────────────────────────────────────────
+# ── Root & Health ─────────────────────────────────────────────────────────────
+
+@app.get("/", include_in_schema=False)
+def root():
+    return RedirectResponse(url="/api/docs")
+
 
 @app.get("/health", tags=["health"])
 def health():
