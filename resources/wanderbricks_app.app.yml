@@ -1,0 +1,20 @@
+resources:
+  apps:
+    wanderbricks_app:
+      name: wanderbricks-api
+      description: "REST API for samples.wanderbricks Unity Catalog data"
+      source_code_path: ../src
+
+      resources:
+        - name: warehouse
+          sql_warehouse:
+            id: "9a9e6998ebd419bf"
+            permission: CAN_USE
+
+      config:
+        command:
+          - bash
+          - start.sh
+        env:
+          - name: DATABRICKS_WAREHOUSE_ID
+            value: "9a9e6998ebd419bf"

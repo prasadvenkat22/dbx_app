@@ -1,0 +1,29 @@
+[project]
+name = "dbx_app"
+version = "0.0.1"
+authors = [{ name = "venkatangirala@gmail.com" }]
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.0",
+    "databricks-sdk>=0.32.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "ruff",
+    "databricks-dlt",
+    "databricks-connect>=15.4,<15.5",
+    "ipykernel",
+]
+
+[project.scripts]
+main = "dbx_app.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 120
