@@ -1,8 +1,1 @@
 command: ["bash", "start.sh"]
-env:
-  - name: DATABRICKS_WAREHOUSE_ID
-    value: ${var.warehouse_id}
-  - name: LAKEBASE_HOST
-    value: ${var.lakebase_host}
-  - name: LAKEBASE_ENDPOINT
-    value: ${var.lakebase_endpoint}
