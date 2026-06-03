@@ -5,7 +5,7 @@ from databricks.sdk import WorkspaceClient
 
 LAKEBASE_HOST = os.environ.get("LAKEBASE_HOST", "")
 LAKEBASE_PORT = int(os.environ.get("LAKEBASE_PORT", "5432"))
-LAKEBASE_DB = os.environ.get("LAKEBASE_DB", "postgres")
+LAKEBASE_DB = os.environ.get("LAKEBASE_DB", "databricks_postgres")
 LAKEBASE_ENDPOINT = os.environ.get("LAKEBASE_ENDPOINT", "")
 
 
@@ -25,15 +25,21 @@ def _connect() -> psycopg2.extensions.connection:
     me = w.current_user.me()
     db_user = me.user_name or (me.emails[0].value if me.emails else "unknown")
 
-    # Generate a short-lived OAuth token used as the Postgres password
-    cred = w.lakebase.generate_database_credential(endpoint=LAKEBASE_ENDPOINT)
+    # Generate a short-lived database credential via the REST API directly.
+    # w.lakebase doesn't exist in older SDK versions, so we use api_client.do() instead.
+    resp = w.api_client.do(
+        "POST",
+        "/api/2.0/postgres/credentials",
+        body={"endpoint": LAKEBASE_ENDPOINT},
+    )
+    token = resp.get("token", "")
 
     return psycopg2.connect(
         host=LAKEBASE_HOST,
         port=LAKEBASE_PORT,
         dbname=LAKEBASE_DB,
         user=db_user,
-        password=cred.token,
+        password=token,
         sslmode="require",
         cursor_factory=RealDictCursor,
     )

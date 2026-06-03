@@ -1,5 +1,6 @@
 import os
 import traceback
+from contextlib import asynccontextmanager
 from datetime import date
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, RedirectResponse
@@ -7,12 +8,23 @@ from pydantic import BaseModel
 from . import wanderbricks as wb
 from . import lakebase as lb
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        lb.ensure_bookings_table()
+    except Exception as e:
+        print(f"WARNING: could not ensure bookings table on startup: {e}")
+    yield
+
+
 app = FastAPI(
     title="Wanderbricks API",
     description="REST API over samples.wanderbricks in Databricks Unity Catalog",
     version="1.0.0",
     docs_url="/api/docs",
     redoc_url="/api/redoc",
+    lifespan=lifespan,
 )
 
 
@@ -73,6 +85,25 @@ def me(request: Request):
 
 
 # ── Schema discovery ──────────────────────────────────────────────────────────
+
+@app.get("/api/debug/lakebase", tags=["health"])
+def debug_lakebase():
+    """Show which database the app connects to and what tables exist."""
+    try:
+        conn = lb._connect()
+        with conn.cursor() as cur:
+            cur.execute("SELECT current_database(), current_user;")
+            db, user = cur.fetchone().values()
+            cur.execute("""
+                SELECT table_name FROM information_schema.tables
+                WHERE table_schema = 'public' ORDER BY table_name;
+            """)
+            tables = [r["table_name"] for r in cur.fetchall()]
+        conn.close()
+        return {"database": db, "user": user, "tables": tables}
+    except Exception as e:
+        return {"error": str(e)}
+
 
 @app.get("/api/debug/warehouse", tags=["health"])
 def debug_warehouse():
