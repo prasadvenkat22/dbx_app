@@ -1,0 +1,91 @@
+
+  1. Authenticate the Databricks CLI against the new workspace
+
+  databricks configure --profile new-workspace
+  Enter the new workspace URL and a personal access token (or use OAuth). This saves credentials to
+  ~/.databrickscfg.
+
+  2. Add a new target in databricks.yml
+
+  Add a block under targets: (e.g., staging) pointing at the new workspace:
+
+    staging:
+      mode: development
+      workspace:
+        host: https://your-new-workspace.cloud.databricks.com
+        profile: new-workspace          # matches the profile from step 1
+      variables:
+        catalog: workspace              # must exist in the new workspace
+        schema: ${workspace.current_user.short_name}
+        warehouse_id: "YOUR_WAREHOUSE_ID"   # from Compute → SQL Warehouses
+        lakebase_host: ""
+        lakebase_endpoint: ""
+
+  3. Get the warehouse ID in the new workspace: Compute → SQL Warehouses → your warehouse → Connection details
+  → copy the ID.
+
+  4. Make sure samples.wanderbricks exists — the app queries that Unity Catalog schema. If it's not available
+  in the new workspace, the data layer in wanderbricks.py will need a different catalog/schema.
+
+  5. Deploy and run
+
+  databricks bundle deploy -t staging
+  databricks bundle run -t staging wanderbricks_app
+
+  The bundle will build the Python wheel, upload it, create the Databricks App resource, and start it.
+
+  ---
+  Key things that must exist in the new workspace before deploying:
+  - A running SQL Warehouse (for the statement execution API)
+  - The workspace catalog (or change the catalog variable to one that does exist)
+  - The samples.wanderbricks schema, or update the queries in wanderbricks.py to point at your data
+
+  Your dev target is already configured. Just run:
+  
+  databricks bundle deploy -t dev
+
+  Then to start the app:
+
+
+  databricks bundle run -t dev wanderbricks_app
+
+  That's it — no config changes needed since the workspace, warehouse ID, and credentials are already set in
+  databricks.yml.
+--The app's service principal ID is 99cdfe9b-9956-4eae-9234-70f888617f93 (from the error). You need to
+  ---run these SQL commands in your Lakebase SQL Editor (in the Databricks UI → your database instance):
+
+  -- Enable the Databricks auth extension (one-time setup)
+  CREATE EXTENSION IF NOT EXISTS databricks_auth;
+
+  -- Create a role for the app's service principal
+  SELECT databricks_create_role('99cdfe9b-9956-4eae-9234-70f888617f93', 'service_principal');
+
+  -- Grant database and schema access
+  GRANT CONNECT ON DATABASE postgres TO "99cdfe9b-9956-4eae-9234-70f888617f93";
+  GRANT CREATE, USAGE ON SCHEMA public TO "99cdfe9b-9956-4eae-9234-70f888617f93";
+
+  -- Grant table access (run after the bookings table is created on first connect)
+  GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO
+  "99cdfe9b-9956-4eae-9234-70f888617f93";
+  GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO "99cdfe9b-9956-4eae-9234-70f888617f93";
+
+  GRANT CREATE ON SCHEMA public TO "99cdfe9b-9956-4eae-9234-70f888617f93";
+
+  --The GRANT didn't apply, or the Lakebase SQL Editor user doesn't have permission to grant on that
+  --schema. The simplest fix: create the table manually as admin, then grant row-level access. Run this in
+  --the Lakebase SQL Editor:
+--databricks_postgres
+  CREATE TABLE IF NOT EXISTS bookings (
+      booking_id  SERIAL        PRIMARY KEY,
+      property_id BIGINT        NOT NULL,
+      user_id     BIGINT        NOT NULL,
+      check_in    DATE          NOT NULL,
+      check_out   DATE          NOT NULL,
+      guests      INT           NOT NULL DEFAULT 1,
+      status      VARCHAR(20)   NOT NULL DEFAULT 'CONFIRMED',
+      total_price NUMERIC(10,2),
+      created_at  TIMESTAMP     NOT NULL DEFAULT NOW()
+  );
+
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE bookings TO "99cdfe9b-9956-4eae-9234-70f888617f93";
+  GRANT USAGE, SELECT ON SEQUENCE bookings_booking_id_seq TO "99cdfe9b-9956-4eae-9234-70f888617f93";
