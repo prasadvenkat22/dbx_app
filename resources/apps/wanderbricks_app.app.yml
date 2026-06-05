@@ -3,7 +3,7 @@ resources:
     wanderbricks_app:
       name: wanderbricks-api
       description: "REST API for samples.wanderbricks Unity Catalog data"
-      source_code_path: ../src
+      source_code_path: ../../src
 
       resources:
         - name: warehouse

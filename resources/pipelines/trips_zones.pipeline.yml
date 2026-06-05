@@ -1,0 +1,17 @@
+resources:
+  pipelines:
+    trips_zones_pipeline:
+      name: trips_zones_pipeline
+      catalog: ${var.catalog}
+      schema: ${var.schema}
+      serverless: true
+
+      libraries:
+        - file:
+            path: ../../src/dbx_app_etl/transformations/sample_trips_dbx_app.py
+        - file:
+            path: ../../src/dbx_app_etl/transformations/sample_zones_dbx_app.py
+
+      environment:
+        dependencies:
+          - --editable ${workspace.file_path}

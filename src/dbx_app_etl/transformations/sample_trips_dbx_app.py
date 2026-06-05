@@ -9,4 +9,4 @@ from pyspark.sql.functions import col
 
 @dp.table
 def sample_trips_dbx_app():
-    return spark.read.table("samples.nyctaxi.trips")
+    return spark.read.table("samples.nyctaxi.trips").limit(5)
